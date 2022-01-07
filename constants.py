@@ -1,0 +1,6 @@
+EPS = '_'
+AXIOM = 'S'
+TERMINAL_PATTERN = '[A-Z]'
+NONTERMINAL_PATTERN = '[a-z_]'
+RULE_REGEX = '\\s*[A-Z][A-Za-z]*\\s*->\\s*(_|[A-Za-z]+)\\s*'
+RULE_ARROW = '->'
