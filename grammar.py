@@ -1,4 +1,6 @@
 import re
+from operator import add
+from functools import reduce
 from constants import AXIOM, EPS, TERMINAL_PATTERN, NONTERMINAL_PATTERN
 from rule import Rule
 
@@ -15,16 +17,16 @@ class Grammar:
         if not any(AXIOM in r.lhs for r in rules):
             raise ValueError(ERROR_NO_AXIOM)
 
-        self.rules = rules
-        self.terminals = set(list(filter(re.compile(TERMINAL_PATTERN).match, [str(r) for r in rules])) + [EPS])
-        self.nonterminals = set(list(filter(re.compile(NONTERMINAL_PATTERN).match, [str(r) for r in rules])))
+        self.rules = sorted(rules, key=lambda r: 0 if str(r)[0]==AXIOM else ord(str(r)[0]))
+        self.terminals = set(list(reduce(add, [re.findall(TERMINAL_PATTERN, str(r)) for r in rules])) + [EPS])
+        self.nonterminals = set(list(reduce(add, [re.findall(NONTERMINAL_PATTERN, str(r)) for r in rules])))
     
     def __str__(self):
         return '\n'.join([
-                f'Terminals: {self.terminals}',
-                f'Nonterminals: {self.nonterminals}',
+                f'Terminals: {sorted(self.terminals)}',
+                f'Nonterminals: {sorted(self.nonterminals)}',
                 f'Rules:'
-            ] + [f'{i+1}) {rule}' for i, rule in enumerate(self.rules)])
+        ] + [f'{i+1}) {rule}' for i, rule in enumerate(self.rules)])
 
 
 rules = ['S -> Aa', 'A -> bc', 'S -> ABCaA', 'B -> Ca', 'C -> _']
