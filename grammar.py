@@ -38,20 +38,6 @@ class Grammar:
         if not self.check_rules(rules):
             raise ValueError(self.error_rules)
 
-    def delete_rule(self, rule):
-        terminals = set(re.findall(TERMINAL_PATTERN, str(rule)))
-        nonterminals = set(re.findall(NONTERMINAL_PATTERN, str(rule)))
-
-        for terminal in [t for t in terminals if t in self.terminals]:
-            self.terminals.remove(terminal)
-        
-        for nonterminal in [nt for nt in nonterminals if nt in self.nonterminals]:
-            self.nonterminals.remove(nonterminal)
-        
-        self.rules.remove(rule)
-
-        print(f"Removed rule {rule}, terminals {', '.join(terminals)} and nonterminals {', '.join(nonterminals)}")
-
     def __str__(self):
         return '\n'.join([
                 f'Terminals: {sorted(self.terminals)}',
@@ -84,10 +70,8 @@ class ContextFreeGrammar(Grammar):
         i = 0
 
         print("Scanning through reachable nonterminals...")
+        print(f"R{i} = {sorted(reachable, key=sort_nt)}")
         while reachable != reachable_prev:
-            print(f"R{i} = {sorted(reachable, key=sort_nt)}")
-            i += 1
-
             reachable_prev = reachable.copy()
             reachable |= {
                 nt
@@ -96,12 +80,79 @@ class ContextFreeGrammar(Grammar):
                 if nonterminal in rule.lhs
                 for nt in set(re.findall(NONTERMINAL_PATTERN, rule.rhs))
             }
-        
-        unreachable = self.nonterminals - reachable
-        print(f"Found unreachable nonterminals: {', '.join(unreachable)}")
 
-        for rule in [r for r in self.rules if r.lhs in unreachable]:
-            self.delete_rule(rule)
+            i += 1
+            print(f"R{i} = {sorted(reachable, key=sort_nt)}")
+
+        unreachable_terminals = self.terminals - ({
+            t
+            for rule in self.rules
+            for t in set(re.findall(TERMINAL_PATTERN, rule.rhs))
+            if rule.lhs in reachable
+        } | {EPS})
+        unreachable_nonterminals = self.nonterminals - reachable
+        unreachable_rules = [r for r in self.rules if r.lhs in unreachable_nonterminals]
+        
+        print(f"Found unreachable nonterminals: {', '.join(unreachable_nonterminals)}")
+
+        for rule in unreachable_rules:
+            self.rules.remove(rule)
+            print(f"Removed rule {rule}")
+        
+        for terminal in unreachable_terminals:
+            self.terminals.remove(terminal)
+
+        for nonterminal in unreachable_nonterminals:
+            self.nonterminals.remove(nonterminal)
+
+        print(f"Removed terminals {', '.join(unreachable_terminals)}")
+        print(f"Removed nonterminals {', '.join(unreachable_nonterminals)}")
+    
+    def remove_unproductive(self):
+        productive = {
+            rule.lhs
+            for rule in self.rules
+            if all(c in self.terminals for c in rule.rhs)
+        }
+        productive_prev = None
+        i = 0
+        
+        print("Scanning through productive nonterminals...")
+        print(f"Pr{i} = {sorted(productive, key=sort_nt)}")
+        while productive != productive_prev:
+            productive_prev = productive.copy()
+            productive |= {
+                rule.lhs
+                for rule in self.rules
+                if all(c in productive | self.terminals for c in rule.rhs)
+            }
+            
+            i += 1
+            print(f"Pr{i} = {sorted(productive, key=sort_nt)}")
+        
+        unproductive_terminals = self.terminals - ({
+            t
+            for rule in self.rules
+            for t in set(re.findall(TERMINAL_PATTERN, rule.rhs))
+            if rule.lhs in productive
+        } | {EPS})
+        unproductive_nonterminals = self.nonterminals - productive
+        unproductive_rules = [r for r in self.rules for nt in unproductive_nonterminals if nt in r.lhs or nt in r.rhs]
+        print(f"Found unproductive nonterminals: {', '.join(unproductive_nonterminals)}")
+
+        for rule in unproductive_rules:
+            self.rules.remove(rule)
+            print(f"Removed rule {rule}")
+        
+        for terminal in unproductive_terminals:
+            self.terminals.remove(terminal)
+        
+        for nonterminal in unproductive_nonterminals:
+            self.nonterminals.remove(nonterminal)
+        
+        
+        print(f"Removed terminals {', '.join(unproductive_terminals)}")
+        print(f"Removed nonterminals {', '.join(unproductive_nonterminals)}")
 
 
 class LeftLinearGrammar(Grammar):
@@ -120,5 +171,3 @@ class RightLinearGrammar(Grammar):
     """
     check_rules = lambda rules: any(re.compile(RULE_PATTERN_TYPE_3R).match(str(r)) for r in rules)
     error_rules = "Rules must be of form A -> yB or A -> y where A, B are nonterminals, and y is a word."
-
-
