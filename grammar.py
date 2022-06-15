@@ -136,7 +136,7 @@ class ContextFreeGrammar(Grammar):
             for t in set(re.findall(TERMINAL_PATTERN, rule.rhs))
             if rule.lhs in productive
         } | {EPS})
-        unproductive_nonterminals = self.nonterminals - productive
+        unproductive_nonterminals = self.nonterminals - (productive | {AXIOM})
         unproductive_rules = [r for r in self.rules for nt in unproductive_nonterminals if nt in r.lhs or nt in r.rhs]
         print(f"Found unproductive nonterminals: {', '.join(unproductive_nonterminals)}")
 
@@ -149,7 +149,6 @@ class ContextFreeGrammar(Grammar):
         
         for nonterminal in unproductive_nonterminals:
             self.nonterminals.remove(nonterminal)
-        
         
         print(f"Removed terminals {', '.join(unproductive_terminals)}")
         print(f"Removed nonterminals {', '.join(unproductive_nonterminals)}")
