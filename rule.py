@@ -13,8 +13,17 @@ class Rule:
         rule = re.sub('\\s*', '', rule)
         self.lhs, self.rhs = rule.split(ARROW)
     
+    def __eq__(self, other):
+        return isinstance(other, Rule) and self.lhs == other.lhs and self.rhs == other.rhs
+
     def __str__(self):
         return f'{self.lhs} {ARROW} {self.rhs}'
 
     def __repr__(self):
         return f'{self.__class__.__name__}(\'{self.__str__()}\')'
+
+    def __getitem__(self, index):
+        return self.__str__()[index]
+    
+    def __contains__(self, item):
+        return item in self.__str__()
